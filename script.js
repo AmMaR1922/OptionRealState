@@ -31,25 +31,99 @@ const EMAILJS_CONFIG = {
     TEMPLATE_ID: "template_s1ldd07"     // Replace with your Template ID from Email Templates
 };
 
-// Initialize EmailJS (already initialized in HTML, but ensure it's ready)
+// Initialize EmailJS - ensure it's only initialized once
 (function() {
-    // Wait for EmailJS to be loaded
-    const initEmailJS = () => emailjs.init({ publicKey: EMAILJS_CONFIG.PUBLIC_KEY });
+    // Flag to prevent multiple initializations
+    let emailjsInitialized = false;
     
-    if (typeof emailjs !== 'undefined') {
-        initEmailJS();
-    } else {
-        // If EmailJS isn't loaded yet, wait for it
-        window.addEventListener('load', function() {
-            if (typeof emailjs !== 'undefined') {
-                initEmailJS();
+    const initEmailJS = () => {
+        if (emailjsInitialized) {
+            return; // Already initialized
+        }
+        
+        try {
+            if (typeof emailjs !== 'undefined' && emailjs.init) {
+                emailjs.init({ publicKey: EMAILJS_CONFIG.PUBLIC_KEY });
+                emailjsInitialized = true;
+                console.log('EmailJS initialized successfully with Public Key:', EMAILJS_CONFIG.PUBLIC_KEY);
+            } else {
+                console.warn('EmailJS is not available yet');
             }
+        } catch (error) {
+            console.error('Error initializing EmailJS:', error);
+        }
+    };
+    
+    // Try to initialize when DOM is ready
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', function() {
+            // Wait a bit for EmailJS script to load
+            setTimeout(initEmailJS, 100);
         });
+    } else {
+        // DOM is already ready
+        setTimeout(initEmailJS, 100);
     }
+    
+    // Also try on window load as backup
+    window.addEventListener('load', function() {
+        if (!emailjsInitialized && typeof emailjs !== 'undefined') {
+            initEmailJS();
+        }
+    });
+    
+    // Polling fallback - check every 100ms for up to 3 seconds
+    let attempts = 0;
+    const maxAttempts = 30; // 3 seconds max
+    const checkInterval = setInterval(() => {
+        attempts++;
+        if (typeof emailjs !== 'undefined' && !emailjsInitialized) {
+            initEmailJS();
+        }
+        if (emailjsInitialized || attempts >= maxAttempts) {
+            clearInterval(checkInterval);
+            if (!emailjsInitialized) {
+                console.error('EmailJS failed to load after 3 seconds');
+            }
+        }
+    }, 100);
 })();
 
 // Function to send email using EmailJS
 function sendEmail(fullName, email, phone, purpose) {
+    // Ensure EmailJS is initialized before sending
+    if (typeof emailjs === 'undefined') {
+        console.error('EmailJS is not loaded');
+        return Promise.reject(new Error('EmailJS library is not loaded'));
+    }
+    
+    // Verify EmailJS is properly initialized
+    if (!emailjs.init || typeof emailjs.send !== 'function') {
+        console.error('EmailJS is not properly initialized');
+        // Try to initialize again
+        try {
+            emailjs.init({ publicKey: EMAILJS_CONFIG.PUBLIC_KEY });
+            console.log('Re-initialized EmailJS');
+        } catch (initError) {
+            console.error('Failed to initialize EmailJS:', initError);
+            return Promise.reject(new Error('EmailJS initialization failed'));
+        }
+    }
+    
+    // Verify configuration
+    if (!EMAILJS_CONFIG.SERVICE_ID || EMAILJS_CONFIG.SERVICE_ID.includes('YOUR_')) {
+        return Promise.reject(new Error('Service ID is not configured'));
+    }
+    
+    if (!EMAILJS_CONFIG.TEMPLATE_ID || EMAILJS_CONFIG.TEMPLATE_ID.includes('YOUR_')) {
+        return Promise.reject(new Error('Template ID is not configured'));
+    }
+    
+    // Verify Public Key is set
+    if (!EMAILJS_CONFIG.PUBLIC_KEY || EMAILJS_CONFIG.PUBLIC_KEY.includes('YOUR_')) {
+        return Promise.reject(new Error('Public Key is not configured'));
+    }
+    
     // Template parameters - matching your EmailJS template variables:
     // {{name}}, {{title}}, {{message}}, {{time}}
     const purposeText = purpose === 'invest' ? 'Investment' : 'Rental';
@@ -77,10 +151,11 @@ Please respond to this inquiry at your earliest convenience.
         purpose: purposeText  // In case you want to add purpose separately
     };
     
-    // Ensure EmailJS is initialized before sending
-    if (typeof emailjs === 'undefined') {
-        return Promise.reject(new Error('EmailJS library is not loaded'));
-    }
+    console.log('Sending email with params:', {
+        serviceId: EMAILJS_CONFIG.SERVICE_ID,
+        templateId: EMAILJS_CONFIG.TEMPLATE_ID,
+        templateParams: templateParams
+    });
     
     return emailjs.send(
         EMAILJS_CONFIG.SERVICE_ID,
@@ -254,6 +329,14 @@ document.addEventListener('DOMContentLoaded', function() {
                 return;
             }
             
+            // Debug: Log configuration before sending
+            console.log('EmailJS Config:', {
+                SERVICE_ID: EMAILJS_CONFIG.SERVICE_ID,
+                TEMPLATE_ID: EMAILJS_CONFIG.TEMPLATE_ID,
+                PUBLIC_KEY: EMAILJS_CONFIG.PUBLIC_KEY,
+                emailjsLoaded: typeof emailjs !== 'undefined'
+            });
+            
             // Send email using EmailJS
             sendEmail(fullName, email, phone, purpose.value)
                 .then((response) => {
@@ -279,18 +362,45 @@ document.addEventListener('DOMContentLoaded', function() {
                     }, 5000);
                 })
                 .catch((error) => {
-                    // Error
-                    console.error('EmailJS Error:', error);
+                    // Error - Log full error details
+                    console.error('EmailJS Full Error:', error);
+                    console.error('Error Status:', error?.status);
+                    console.error('Error Text:', error?.text);
+                    console.error('Error Message:', error?.message);
+                    
                     formMessage.className = 'form-message error';
                     
-                    // Provide more specific error messages
+                    // Provide more specific error messages based on error type
                     let errorMsg = 'Sorry, there was an error sending your message. ';
-                    if (error.text) {
+                    
+                    if (error?.status === 400) {
+                        if (error?.text && error.text.includes('Public Key')) {
+                            errorMsg = 'The Public Key is invalid. Please update your Public Key in script.js and index.html. Get your Public Key from: https://dashboard.emailjs.com/admin/account';
+                        } else {
+                            errorMsg = 'Invalid request. Please check your EmailJS configuration (Service ID or Template ID may be incorrect).';
+                        }
+                    } else if (error?.status === 401) {
+                        errorMsg = 'Authentication failed. Please check your EmailJS Public Key.';
+                    } else if (error?.status === 404) {
+                        errorMsg = 'Template or Service not found. Please verify your Template ID and Service ID in EmailJS dashboard.';
+                    } else if (error?.status === 429) {
+                        errorMsg = 'Too many requests. Please wait a moment and try again.';
+                    } else if (error?.status === 500) {
+                        errorMsg = 'EmailJS server error. Please try again later.';
+                    } else if (error?.text) {
                         errorMsg += error.text;
-                    } else if (error.status) {
+                    } else if (error?.message) {
+                        errorMsg += error.message;
+                    } else if (error?.status) {
                         errorMsg += `Error code: ${error.status}. `;
                     }
-                    errorMsg += 'Please try again or contact us directly.';
+                    
+                    // Add debugging info in development
+                    if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+                        errorMsg += ` (Check console for details)`;
+                    } else {
+                        errorMsg += ' Please try again or contact us directly.';
+                    }
                     
                     formMessage.textContent = errorMsg;
                     formMessage.style.display = 'block';
