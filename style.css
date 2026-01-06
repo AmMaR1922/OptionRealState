@@ -66,6 +66,23 @@ body {
     height: 70px;
 }
 
+/* Logo styles */
+.nav-logo .logo-link {
+    display: block;
+}
+#site-logo {
+    width: auto;
+    max-height: 64px; /* increased for visibility */
+    height: auto;
+    display: block;
+}
+
+@media (max-width: 768px) {
+    #site-logo {
+        max-height: 44px;
+    }
+}
+
 .nav-logo a {
     font-size: 1.5rem;
     font-weight: 700;
@@ -1074,6 +1091,20 @@ html {
     html {
         scroll-behavior: auto;
     }
+}
+
+#site-logo {
+  width: 120px;   /* adjust as needed */
+  height: auto;
+  display: block;
+}
+.site-header { display: flex; align-items: center; gap: 1rem; }
+
+.logo-sprite {
+  width: 120px;
+  height: 40px;
+  background: url('Img/logo.svg') no-repeat center/contain;
+  display: inline-block;
 }
 
 
