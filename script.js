@@ -26,7 +26,7 @@
 // 5. Replace the values below
 
 const EMAILJS_CONFIG = {
-    PUBLIC_KEY: "zp4hEJJUJWqRGf70-",   // Public Key from EmailJS Account (copy exactly from dashboard)
+    PUBLIC_KEY: "zp4hEJJUJWqRGf70-".trim(),   // Public Key from EmailJS Account (copy exactly from dashboard)
     SERVICE_ID: "service_j1rjw37",      // Service ID from Email Services
     TEMPLATE_ID: "template_s1ldd07"     // Template ID from Email Templates
 };
@@ -34,6 +34,20 @@ const EMAILJS_CONFIG = {
 // Verify Public Key format (should not be empty and should be a string)
 if (!EMAILJS_CONFIG.PUBLIC_KEY || typeof EMAILJS_CONFIG.PUBLIC_KEY !== 'string') {
     console.error('Public Key is not properly configured');
+} else {
+    // Log Public Key info for debugging (first 5 and last 5 chars only for security)
+    const keyPreview = EMAILJS_CONFIG.PUBLIC_KEY.length > 10 
+        ? EMAILJS_CONFIG.PUBLIC_KEY.substring(0, 5) + '...' + EMAILJS_CONFIG.PUBLIC_KEY.substring(EMAILJS_CONFIG.PUBLIC_KEY.length - 5)
+        : EMAILJS_CONFIG.PUBLIC_KEY;
+    console.log('Public Key loaded:', keyPreview, '(Length:', EMAILJS_CONFIG.PUBLIC_KEY.length + ')');
+    
+    // Check for common issues
+    if (EMAILJS_CONFIG.PUBLIC_KEY.includes(' ')) {
+        console.warn('⚠️ WARNING: Public Key contains spaces. Remove any spaces.');
+    }
+    if (EMAILJS_CONFIG.PUBLIC_KEY.startsWith(' ') || EMAILJS_CONFIG.PUBLIC_KEY.endsWith(' ')) {
+        console.warn('⚠️ WARNING: Public Key has leading/trailing spaces.');
+    }
 }
 
 // Initialize EmailJS - ensure it's only initialized once
