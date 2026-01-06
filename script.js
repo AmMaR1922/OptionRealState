@@ -26,9 +26,9 @@
 // 5. Replace the values below
 
 const EMAILJS_CONFIG = {
-    PUBLIC_KEY: "uyaKio4T7vNuVoj1w",   // Already set in HTML, using same value
-    SERVICE_ID: "service_j1rjw37",      // Replace with your Service ID from Email Services
-    TEMPLATE_ID: "template_s1ldd07"     // Replace with your Template ID from Email Templates
+    PUBLIC_KEY: "zp4hEJJUJWqRGf70-",   // Public Key from EmailJS Account
+    SERVICE_ID: "service_j1rjw37",      // Service ID from Email Services
+    TEMPLATE_ID: "template_s1ldd07"     // Template ID from Email Templates
 };
 
 // Initialize EmailJS - ensure it's only initialized once
