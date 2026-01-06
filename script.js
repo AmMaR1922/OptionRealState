@@ -18,40 +18,69 @@
    ============================================ */
 
 // EmailJS Configuration
+// IMPORTANT: Replace these with your actual EmailJS credentials:
+// 1. Go to https://www.emailjs.com/
+// 2. Create an account and set up an Email Service (Gmail, etc.)
+// 3. Create an Email Template
+// 4. Get your Service ID and Template ID from the dashboard
+// 5. Replace the values below
+
 const EMAILJS_CONFIG = {
-    PUBLIC_KEY: "YOUR_PUBLIC_KEY",      // Public Key من EmailJS Account
-    SERVICE_ID: "YOUR_SERVICE_ID",      // Service ID من Email Services
-    TEMPLATE_ID: "YOUR_TEMPLATE_ID"     // Template ID من Email Templates
+    PUBLIC_KEY: "uyaKio4T7vNuVoj1w",   // Already set in HTML, using same value
+    SERVICE_ID: "service_j1rjw37",      // Replace with your Service ID from Email Services
+    TEMPLATE_ID: "template_s1ldd07"     // Replace with your Template ID from Email Templates
 };
 
-// Initialize EmailJS
+// Initialize EmailJS (already initialized in HTML, but ensure it's ready)
 (function() {
+    // Wait for EmailJS to be loaded
+    const initEmailJS = () => emailjs.init({ publicKey: EMAILJS_CONFIG.PUBLIC_KEY });
+    
     if (typeof emailjs !== 'undefined') {
-        emailjs.init(EMAILJS_CONFIG.PUBLIC_KEY);
+        initEmailJS();
+    } else {
+        // If EmailJS isn't loaded yet, wait for it
+        window.addEventListener('load', function() {
+            if (typeof emailjs !== 'undefined') {
+                initEmailJS();
+            }
+        });
     }
 })();
 
 // Function to send email using EmailJS
 function sendEmail(fullName, email, phone, purpose) {
+    // Template parameters - matching your EmailJS template variables:
+    // {{name}}, {{title}}, {{message}}, {{time}}
+    const purposeText = purpose === 'invest' ? 'Investment' : 'Rental';
+    const currentTime = new Date().toLocaleString();
+    
     const templateParams = {
-        to_email: "ammar191230@gmail.com",
-        from_name: fullName,
-        from_email: email,
-        phone: phone,
-        purpose: purpose === 'invest' ? 'Invest' : 'Rent',
+        name: fullName,  // Matches {{name}} in your template
+        title: `${purposeText} Inquiry from ${fullName}`,  // Matches {{title}} in your template (used in subject)
         message: `
-New Contact Form Submission from Premium Real Estate:
+Contact Form Details:
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 Name: ${fullName}
 Email: ${email}
 Phone: ${phone}
-Purpose: ${purpose === 'invest' ? 'Invest' : 'Rent'}
+Purpose: ${purposeText}
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-This email was sent from the Premium Real Estate contact form.
-        `.trim()
+Please respond to this inquiry at your earliest convenience.
+        `.trim(),  // Matches {{message}} in your template
+        time: currentTime,  // Matches {{time}} in your template
+        // Additional variables that might be useful:
+        email: email,  // In case you want to add email to template
+        phone: phone,  // In case you want to add phone to template
+        purpose: purposeText  // In case you want to add purpose separately
     };
+    
+    // Ensure EmailJS is initialized before sending
+    if (typeof emailjs === 'undefined') {
+        return Promise.reject(new Error('EmailJS library is not loaded'));
+    }
     
     return emailjs.send(
         EMAILJS_CONFIG.SERVICE_ID,
@@ -199,10 +228,37 @@ document.addEventListener('DOMContentLoaded', function() {
             submitButton.disabled = true;
             submitButton.innerHTML = '<span>Sending...</span>';
             
+            // Check if EmailJS is configured properly
+            if (EMAILJS_CONFIG.SERVICE_ID === "YOUR_SERVICE_ID" || EMAILJS_CONFIG.TEMPLATE_ID === "YOUR_TEMPLATE_ID") {
+                formMessage.className = 'form-message error';
+                formMessage.textContent = 'EmailJS is not configured. Please set SERVICE_ID and TEMPLATE_ID in script.js';
+                formMessage.style.display = 'block';
+                
+                submitButton.disabled = false;
+                submitButton.innerHTML = originalButtonText;
+                
+                console.error('EmailJS Configuration Error: SERVICE_ID and TEMPLATE_ID must be set');
+                return;
+            }
+            
+            // Check if EmailJS is loaded
+            if (typeof emailjs === 'undefined') {
+                formMessage.className = 'form-message error';
+                formMessage.textContent = 'EmailJS library is not loaded. Please check your internet connection.';
+                formMessage.style.display = 'block';
+                
+                submitButton.disabled = false;
+                submitButton.innerHTML = originalButtonText;
+                
+                console.error('EmailJS Error: emailjs is not defined');
+                return;
+            }
+            
             // Send email using EmailJS
             sendEmail(fullName, email, phone, purpose.value)
-                .then(() => {
+                .then((response) => {
                     // Success
+                    console.log('EmailJS Success:', response);
                     formMessage.className = 'form-message success';
                     formMessage.textContent = 'Thank you! Your request has been submitted successfully. We will contact you soon.';
                     formMessage.style.display = 'block';
@@ -224,15 +280,27 @@ document.addEventListener('DOMContentLoaded', function() {
                 })
                 .catch((error) => {
                     // Error
+                    console.error('EmailJS Error:', error);
                     formMessage.className = 'form-message error';
-                    formMessage.textContent = 'Sorry, there was an error sending your message. Please try again or contact us directly.';
+                    
+                    // Provide more specific error messages
+                    let errorMsg = 'Sorry, there was an error sending your message. ';
+                    if (error.text) {
+                        errorMsg += error.text;
+                    } else if (error.status) {
+                        errorMsg += `Error code: ${error.status}. `;
+                    }
+                    errorMsg += 'Please try again or contact us directly.';
+                    
+                    formMessage.textContent = errorMsg;
                     formMessage.style.display = 'block';
                     
                     // Reset button
                     submitButton.disabled = false;
                     submitButton.innerHTML = originalButtonText;
                     
-                    console.error('EmailJS Error:', error);
+                    // Scroll to message
+                    formMessage.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
                 });
         }
     });
