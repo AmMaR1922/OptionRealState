@@ -145,7 +145,7 @@ function sendEmail(fullName, email, phone, purpose) {
     
     // Template parameters - matching your EmailJS template variables:
     // {{name}}, {{title}}, {{message}}, {{time}}
-    const purposeText = purpose === 'invest' ? 'Investment' : 'Rental';
+    const purposeText = purpose === 'invest' ? 'Investment' : purpose === 'rent' ? 'Rental' : 'Design';
     const currentTime = new Date().toLocaleString();
     
     const templateParams = {
@@ -293,7 +293,7 @@ document.addEventListener('DOMContentLoaded', function() {
         // Check if purpose is selected
         if (!purpose) {
             isValid = false;
-            errorMessage = 'Please select whether you want to Invest or Rent.';
+            errorMessage = 'Please select whether you want to Invest, Rent, or Design.';
         }
         
         // Validate full name
