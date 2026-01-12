@@ -26,9 +26,9 @@
 // 5. Replace the values below
 
 const EMAILJS_CONFIG = {
-    PUBLIC_KEY: "zp4hEJJUJWqRGf70-".trim(),   // Public Key from EmailJS Account (copy exactly from dashboard)
-    SERVICE_ID: "service_j1rjw37",      // Service ID from Email Services
-    TEMPLATE_ID: "template_s1ldd07"     // Template ID from Email Templates
+    PUBLIC_KEY: "_ic0YlcaldUfdLcWS".trim(),   // Public Key from EmailJS Account (copy exactly from dashboard)
+    SERVICE_ID: "service_z3xlkw8",      // Service ID from Email Services
+    TEMPLATE_ID: "template_jbosh2u"     // Template ID from Email Templates
 };
 
 // Verify Public Key format (should not be empty and should be a string)
